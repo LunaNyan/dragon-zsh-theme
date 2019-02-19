@@ -28,6 +28,30 @@ ZSH_THEME_GIT_PROMPT_AHEAD="$WHITE^"
 # Directory info
 # local current_dir='${PWD/#$HOME/~}'
 
+function check_session_type() {
+    SESSION_TYPE=local
+    if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
+        SESSION_TYPE=remote/ssh
+    else
+        case $(ps -o comm= -p $PPID) in
+            sshd|*/sshd) SESSION_TYPE=remote/ssh;;
+        esac
+    fi
+
+    echo $SESSION_TYPE
+}
+
+function dragon_check_ssh() {
+    SESSION_TYPE=$(check_session_type)
+    if [[ "remote/ssh" == $SESSION_TYPE ]]; then
+        echo -n "$RED"
+    else
+        echo -n "$WHITE"
+    fi
+
+    echo "($SESSION_TYPE)"
+}
+
 function get_right_prompt() {
     if git rev-parse --git-dir > /dev/null 2>&1; then
         if [[ -z $(git_prompt_info) ]]; then
@@ -40,22 +64,31 @@ function get_right_prompt() {
     fi
 }
 
-# DRAGON_DATE="$CYAN%W%t"
-# DRAGON_DATE="$CYAN%W-%*"
-DRAGON_DATE="$CYAN$(date -Ins)"
-DRAGON_USER="%n"
-DRAGON_SEPARATOR="$RESET@"
-DRAGON_MACHINE="$MAGENTA%m"
-DRAGON_DIRECTORY="$YELLOW%~"
-DRAGON_PROMPT="$CYAN→ $RESET"
+function get_prompt() {
+    RETVAL=$?
+    if [[ "$UID" == 0 ]]; then
+        DRAGON_PREFIX="$RED⬡"
+    else
+        DRAGON_PREFIX="$GREEN⬢"
+    fi
 
-if [[ "$USER" == "root" ]]; then
-    DRAGON_PREFIX="$RED⬡"
-else
-    DRAGON_PREFIX="$GREEN⬢"
-fi
+    DRAGON_DATE="$CYAN$(date -Ins)"
+    DRAGON_USER="%n"
+    DRAGON_SEPARATOR="$RESET@"
+    DRAGON_MACHINE="$MAGENTA%m"
+    DRAGON_DIRECTORY="$YELLOW%~"
 
-PROMPT="$DRAGON_PREFIX $DRAGON_USER$DRAGON_SEPARATOR$DRAGON_MACHINE: $DRAGON_DIRECTORY $DRAGON_DATE
+    if [[ ${RETVAL} -ne 0 ]]; then
+        DRAGON_PROMPT="$RED→ "
+    else
+        DRAGON_PROMPT="$CYAN→ "
+    fi
+    DRAGON_PROMPT="$DRAGON_PROMPT$RESET"
+    DRAGON_SESSION_INDICATOR=$(dragon_check_ssh)
+    
+    echo "$DRAGON_PREFIX $DRAGON_USER$DRAGON_SEPARATOR$DRAGON_MACHINE: $DRAGON_DIRECTORY $DRAGON_SESSION_INDICATOR $DRAGON_DATE
 $DRAGON_PROMPT"
-RPROMPT='$(get_right_prompt)'
+}
 
+PROMPT='$(get_prompt)'
+RPROMPT='$(get_right_prompt)'
