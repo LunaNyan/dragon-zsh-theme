@@ -72,7 +72,7 @@ function get_prompt() {
         DRAGON_PREFIX="$GREEN⬢"
     fi
 
-    DRAGON_DATE="$CYAN$(date -Ins)"
+    DRAGON_DATE="$CYAN$(date -Iseconds) $YELLOW$(uptime)"
     DRAGON_USER="%n"
     DRAGON_SEPARATOR="$RESET@"
     DRAGON_MACHINE="$MAGENTA%m"
